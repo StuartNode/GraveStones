@@ -15,8 +15,8 @@ import java.io.File;
 import java.util.*;
 
 public class CorpseManager {
-    private final Map<UUID, BlockData> deathchest = new HashMap<>();
-    private final Map<BlockKey, UUID> chestlookup = new HashMap<>();
+    private final Map<UUID, BlockData> deathChest = new HashMap<>();
+    private final Map<BlockKey, UUID> chestLookUp = new HashMap<>();
     private final Material chestBlock = Material.ANDESITE_WALL;
     private File file;
     private FileConfiguration config;
@@ -35,7 +35,7 @@ public class CorpseManager {
 
     public void loadDeathChest() {
         if (!file.exists()) return;
-        deathchest.clear();
+        deathChest.clear();
 
         if (!config.contains("corpses")) return;
         for (String uuidString : config.getConfigurationSection("corpses").getKeys(false)) {
@@ -54,6 +54,9 @@ public class CorpseManager {
                 List<ItemStack> armorList = safeList(path + ".armor");
                 ItemStack offhand = config.getItemStack(path + ".offhand");
 
+                int level = config.getInt(path + ".level");
+                float progress = (float) config.getDouble(path + ".progress");
+
                 ItemStack[] contents = contentsList.toArray(new ItemStack[0]);
                 ItemStack[] armor = armorList.toArray(new ItemStack[0]);
                 BlockInventory inventory = new BlockInventory(contents, armor, offhand);
@@ -64,18 +67,20 @@ public class CorpseManager {
                         name,
                         key,
                         time,
-                        inventory
+                        inventory,
+                        level,
+                        progress
                 );
 
-                deathchest.put(uuid, data);
-                chestlookup.put(key, uuid);
+                deathChest.put(uuid, data);
+                chestLookUp.put(key, uuid);
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to load corpse: " + uuidString);
                 e.printStackTrace();
             }
         }
 
-        plugin.getLogger().info("Loaded " + deathchest.size() + " corpse(s).");
+        plugin.getLogger().info("Loaded " + deathChest.size() + " corpse(s).");
     }
 
     public void loadConfig() {
@@ -99,7 +104,7 @@ public class CorpseManager {
         try {
             config.set("corpses", null);
 
-            for (Map.Entry<UUID, BlockData> entry : deathchest.entrySet()) {
+            for (Map.Entry<UUID, BlockData> entry : deathChest.entrySet()) {
                 String path = "corpses." + entry.getKey();
                 BlockData data = entry.getValue();
 
@@ -110,6 +115,9 @@ public class CorpseManager {
                 config.set(path + ".z", data.getKey().z());
                 config.set(path + ".time", data.getCreatTime());
                 config.set(path + ".contents", data.getInventory().getContents());
+
+                config.set(path + ".level", data.getLevel());
+                config.set(path + ".progress", data.getProgress());
             }
 
             config.save(file);
@@ -121,21 +129,21 @@ public class CorpseManager {
 
     public void add(BlockData data, BlockKey key) {
         UUID uuid = data.getUuid();
-        deathchest.put(uuid, data);
-        chestlookup.put(key, uuid);
+        deathChest.put(uuid, data);
+        chestLookUp.put(key, uuid);
         saveConfig();
     }
 
     public void remove(BlockData data, BlockKey key) {
         UUID uuid = data.getUuid();
-        deathchest.remove(uuid);
-        chestlookup.remove(key);
+        deathChest.remove(uuid);
+        chestLookUp.remove(key);
         saveConfig();
     }
 
     public BlockData get(BlockKey key) {
-        UUID uuid = chestlookup.get(key);
-        return uuid == null ? null : deathchest.get(uuid);
+        UUID uuid = chestLookUp.get(key);
+        return uuid == null ? null : deathChest.get(uuid);
     }
 
     public BlockInventory fullSave(Player player) {
@@ -159,11 +167,11 @@ public class CorpseManager {
         return chestBlock;
     }
 
-    public Map<UUID, BlockData> getDeathchest() {
-        return deathchest;
+    public Map<UUID, BlockData> getDeathChest() {
+        return deathChest;
     }
 
-    public Map<BlockKey, UUID> getChestlookup() {
-        return chestlookup;
+    public Map<BlockKey, UUID> getChestLookUp() {
+        return chestLookUp;
     }
 }

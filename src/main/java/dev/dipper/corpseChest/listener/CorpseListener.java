@@ -35,9 +35,33 @@ public class CorpseListener implements Listener {
         Player player = event.getPlayer();
         if (player.getInventory().isEmpty()) return;
 
-        BlockInventory full = corpseS.fullSave(player);
         Location loc = player.getLocation().getBlock().getLocation();
+        Location loc2 = loc.clone().add(0, 1, 0);
+
+        player.sendMessage(
+                ChatColor.DARK_RED + "☠════════════════════════════☠\n" +
+                        ChatColor.RED + "" + ChatColor.BOLD + "         YOU HAVE DIED\n" +
+                        ChatColor.GRAY + "Your soul has departed..." +
+                        ChatColor.GRAY + "\nYour equipment has been placed inside a " +
+                        ChatColor.GOLD + "Corpse Chest" +
+                        ChatColor.GRAY + "." +
+                        ChatColor.AQUA + "\n\n📍 X: " + ChatColor.WHITE + loc.getBlockX() +
+                        ChatColor.AQUA + "  Y: " + ChatColor.WHITE + loc.getBlockY() +
+                        ChatColor.AQUA + "  Z: " + ChatColor.WHITE + loc.getBlockZ() +
+                        ChatColor.DARK_RED + "\n☠════════════════════════════☠"
+        );
+
+        if (!isAirBlock(loc) && !isAirBlock(loc2)) {
+            player.sendMessage(ChatColor.RED + "⚠ An unexpected error prevented your gravestone from being placed. Please contact a server administrator. ⚠");
+            player.sendMessage(ChatColor.GRAY + "[Safe Guard] Your items have been dropped at your death location.");
+            return;
+        }
+
+        BlockInventory full = corpseS.fullSave(player);
         BlockKey key = corpseS.key(loc);
+
+        int level = player.getLevel();
+        float progress = player.getExp();
 
         UUID uuid = UUID.randomUUID();
         BlockData data = new BlockData(
@@ -45,31 +69,15 @@ public class CorpseListener implements Listener {
                 player.getName(),
                 key,
                 System.currentTimeMillis(),
-                full
+                full,
+                level,
+                progress
         );
 
         corpseS.add(data, key);
-        Location loc2 = loc.clone().add(0, 1, 0);
-
-        player.sendMessage(
-                ChatColor.DARK_RED + "☠════════════════════════════☠\n" +
-                ChatColor.RED + "" + ChatColor.BOLD + "         YOU HAVE DIED\n" +
-                ChatColor.GRAY + "Your soul has departed..." +
-                ChatColor.GRAY + "\nYour equipment has been placed inside a " +
-                ChatColor.GOLD + "Corpse Chest" +
-                ChatColor.GRAY + "." +
-                ChatColor.AQUA + "\n\n📍 X: " + ChatColor.WHITE + loc.getBlockX() +
-                ChatColor.AQUA + "  Y: " + ChatColor.WHITE + loc.getBlockY() +
-                ChatColor.AQUA + "  Z: " + ChatColor.WHITE + loc.getBlockZ() +
-                ChatColor.DARK_RED + "\n☠════════════════════════════☠"
-        );
-
-        if (isAirBlock(loc) && isAirBlock(loc2)) {
-            player.sendMessage(ChatColor.RED + "⚠ An unexpected error prevented your gravestone from being placed. Please contact a server administrator. ⚠");
-            return;
-        }
 
         event.getDrops().clear();
+        event.setDroppedExp(0);
         loc.getBlock().setType(corpseS.getChestBlock());
         loc2.getBlock().setType(corpseS.getChestBlock());
     }
@@ -94,6 +102,9 @@ public class CorpseListener implements Listener {
         ChestMenu menu = new ChestMenu(plugin, corpseS, data, true);
         guiM.openMenuandLoad(player, menu);
         player.playSound(player, Sound.ENTITY_SKELETON_DEATH, 1, 1);
+
+        player.setLevel(data.getLevel());
+        player.setExp(data.getProgress());
     }
 
     @EventHandler
@@ -105,12 +116,12 @@ public class CorpseListener implements Listener {
         if (player.getGameMode() == GameMode.CREATIVE) return;
         if (block.getType() != corpseS.getChestBlock()) return;
 
-        UUID uuid = corpseS.getChestlookup().get(key);
+        UUID uuid = corpseS.getChestLookUp().get(key);
         if (uuid == null) return;
         event.setCancelled(true);
     }
 
     private boolean isAirBlock(Location location) {
-        return location.getBlock().getType() != Material.AIR;
+        return location.getBlock().getType() == Material.AIR;
     }
 }

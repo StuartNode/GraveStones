@@ -39,7 +39,7 @@ public class ViewMenu extends PaginatedMenu<BlockData> {
 
     @Override
     protected CompletableFuture<List<BlockData>> loadDataAsync(Player player) {
-        return CompletableFuture.supplyAsync(() -> new ArrayList<>(corpseM.getDeathchest().values()));
+        return CompletableFuture.supplyAsync(() -> new ArrayList<>(corpseM.getDeathChest().values()));
     }
 
     @Override
