@@ -1,9 +1,9 @@
-package dev.dipper.corpseChest.manager;
+package dev.dipper.graveStone.manager;
 
-import dev.dipper.corpseChest.CorpseChest;
-import dev.dipper.corpseChest.block.BlockData;
-import dev.dipper.corpseChest.block.BlockInventory;
-import dev.dipper.corpseChest.block.BlockKey;
+import dev.dipper.graveStone.CorpseChest;
+import dev.dipper.graveStone.block.BlockData;
+import dev.dipper.graveStone.block.BlockInventory;
+import dev.dipper.graveStone.block.BlockKey;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -20,7 +20,7 @@ public class CorpseManager {
     private final Material chestBlock = Material.ANDESITE_WALL;
     private File file;
     private FileConfiguration config;
-    private CorpseChest plugin;
+    private final CorpseChest plugin;
 
     public CorpseManager(CorpseChest plugin) {
         this.plugin = plugin;

@@ -1,12 +1,12 @@
-package dev.dipper.corpseChest.listener;
+package dev.dipper.graveStone.listener;
 
-import dev.dipper.corpseChest.CorpseChest;
-import dev.dipper.corpseChest.block.BlockInventory;
-import dev.dipper.corpseChest.block.BlockData;
-import dev.dipper.corpseChest.block.BlockKey;
-import dev.dipper.corpseChest.manager.CorpseManager;
-import dev.dipper.corpseChest.menu.ChestMenu;
-import dev.nexisMenu.gui.GuiManager;
+import dev.dipper.graveStone.CorpseChest;
+import dev.dipper.graveStone.block.BlockInventory;
+import dev.dipper.graveStone.block.BlockData;
+import dev.dipper.graveStone.block.BlockKey;
+import dev.dipper.graveStone.manager.CorpseManager;
+import dev.dipper.graveStone.menu.ChestMenu;
+import dev.nexisApi.gui.GuiManager;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;

@@ -1,7 +1,6 @@
-name: CorpseChest
+name: GraveStone
 version: '${version}'
-main: dev.dipper.corpseChest.CorpseChest
+main: dev.dipper.graveStone.CorpseChest
 api-version: '26.1.1'
 commands:
-  view: { }
-  invview: { }
+  graveview: { }

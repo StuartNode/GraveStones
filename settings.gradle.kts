@@ -1,4 +1,7 @@
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+rootProject.name = "GraveStone"
+
+includeBuild("../NexisApi") {
+    dependencySubstitution {
+        substitute(module("dev.stuart:NexisApi")).using(project(":"))
+    }
 }
-rootProject.name = "CourspeChest"

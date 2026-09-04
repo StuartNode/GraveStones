@@ -1,9 +1,9 @@
-package dev.dipper.corpseChest.menu;
+package dev.dipper.graveStone.menu;
 
-import dev.dipper.corpseChest.block.BlockData;
-import dev.dipper.corpseChest.block.BlockKey;
-import dev.dipper.corpseChest.manager.CorpseManager;
-import dev.nexisMenu.menu.PaginatedMenu;
+import dev.dipper.graveStone.block.BlockData;
+import dev.dipper.graveStone.block.BlockKey;
+import dev.dipper.graveStone.manager.CorpseManager;
+import dev.nexisApi.menu.PaginatedMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;

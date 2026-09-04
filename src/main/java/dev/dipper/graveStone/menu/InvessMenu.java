@@ -1,6 +1,6 @@
-package dev.dipper.corpseChest.menu;
+package dev.dipper.graveStone.menu;
 
-import dev.nexisMenu.menu.PaginatedMenu;
+import dev.nexisApi.menu.PaginatedMenu;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;

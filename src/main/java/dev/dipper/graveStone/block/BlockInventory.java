@@ -1,4 +1,4 @@
-package dev.dipper.corpseChest.block;
+package dev.dipper.graveStone.block;
 
 import org.bukkit.inventory.ItemStack;
 
