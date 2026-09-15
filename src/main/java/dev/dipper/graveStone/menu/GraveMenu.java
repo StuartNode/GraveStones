@@ -17,12 +17,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class ChestMenu extends PaginatedMenu<ItemStack> {
+public class GraveMenu extends PaginatedMenu<ItemStack> {
     private final CorpseManager corpseM;
     private final BlockData data;
     private final boolean adminOpen;
 
-    public ChestMenu(JavaPlugin plugin, CorpseManager corpseM, BlockData data, boolean openCorpse) {
+    public GraveMenu(JavaPlugin plugin, CorpseManager corpseM, BlockData data, boolean openCorpse) {
         super(plugin);
         this.corpseM = corpseM;
         this.data = data;
@@ -59,22 +59,11 @@ public class ChestMenu extends PaginatedMenu<ItemStack> {
     }
 
     @Override
-    protected void onElementClick(Player player, ItemStack item, InventoryClickEvent event) {
-        /*player.getInventory().addItem(item.clone());
-        List<ItemStack> contents = new ArrayList<>(
-                Arrays.asList(data.getInventory().getContents())
-        );
-
-        contents.remove(item);
-        data.getInventory().setContents(contents.toArray(new ItemStack[0]));
-        corpseM.saveConfig();
-        requestReload();*/
-    }
+    protected void onElementClick(Player player, ItemStack item, InventoryClickEvent event) {}
 
     @Override
     public void onClose(Player player) {
         if (!adminOpen) return;
-
         BlockKey key = data.getKey();
         World world = Bukkit.getWorld(key.world());
 

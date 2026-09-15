@@ -15,7 +15,7 @@ public final class CorpseChest extends JavaPlugin {
         guiManager = new GuiManager();
         CorpseManager corpseManager = new CorpseManager(this);
 
-        getServer().getPluginManager().registerEvents(new CorpseListener(this, corpseManager, guiManager), this);
+        getServer().getPluginManager().registerEvents(new CorpseListener(corpseManager, guiManager, this), this);
         getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
 
         getCommand("graveview").setExecutor(new GraveViewCommand(corpseManager, guiManager, this));

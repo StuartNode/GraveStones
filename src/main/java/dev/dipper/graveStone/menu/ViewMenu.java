@@ -52,7 +52,7 @@ public class ViewMenu extends PaginatedMenu<BlockData> {
 
     @Override
     protected void onElementClick(Player player, BlockData item, InventoryClickEvent event) {
-         guiM.openMenuandLoad(player, new ChestMenu(plugin, corpseM, item, false));
+         guiM.openMenuandLoad(player, new GraveMenu(plugin, corpseM, item, false));
     }
 
     private final DateTimeFormatter TIME_FORMAT =

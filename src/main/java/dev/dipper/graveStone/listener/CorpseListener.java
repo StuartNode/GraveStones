@@ -5,7 +5,7 @@ import dev.dipper.graveStone.block.BlockInventory;
 import dev.dipper.graveStone.block.BlockData;
 import dev.dipper.graveStone.block.BlockKey;
 import dev.dipper.graveStone.manager.CorpseManager;
-import dev.dipper.graveStone.menu.ChestMenu;
+import dev.dipper.graveStone.menu.GraveMenu;
 import dev.nexisApi.gui.GuiManager;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -20,14 +20,14 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import java.util.UUID;
 
 public class CorpseListener implements Listener {
+    private final CorpseManager corpseManager;
+    private final GuiManager guiManager;
     private final CorpseChest plugin;
-    private final CorpseManager corpseS;
-    private final GuiManager guiM;
 
-    public CorpseListener(CorpseChest plugin, CorpseManager corpseS, GuiManager guiM) {
+    public CorpseListener(CorpseManager corpseManager, GuiManager guiManager, CorpseChest plugin) {
+        this.corpseManager = corpseManager;
+        this.guiManager = guiManager;
         this.plugin = plugin;
-        this.corpseS = corpseS;
-        this.guiM = guiM;
     }
 
     @EventHandler
@@ -43,7 +43,7 @@ public class CorpseListener implements Listener {
                         ChatColor.RED + "" + ChatColor.BOLD + "         YOU HAVE DIED\n" +
                         ChatColor.GRAY + "Your soul has departed..." +
                         ChatColor.GRAY + "\nYour equipment has been placed inside a " +
-                        ChatColor.GOLD + "Corpse Chest" +
+                        ChatColor.GOLD + "Grave Stone" +
                         ChatColor.GRAY + "." +
                         ChatColor.AQUA + "\n\n📍 X: " + ChatColor.WHITE + loc.getBlockX() +
                         ChatColor.AQUA + "  Y: " + ChatColor.WHITE + loc.getBlockY() +
@@ -57,8 +57,8 @@ public class CorpseListener implements Listener {
             return;
         }
 
-        BlockInventory full = corpseS.fullSave(player);
-        BlockKey key = corpseS.key(loc);
+        BlockInventory full = corpseManager.fullSave(player);
+        BlockKey key = corpseManager.key(loc);
 
         int level = player.getLevel();
         float progress = player.getExp();
@@ -74,34 +74,42 @@ public class CorpseListener implements Listener {
                 progress
         );
 
-        corpseS.add(data, key);
+        corpseManager.add(data, key);
 
         event.getDrops().clear();
         event.setDroppedExp(0);
-        loc.getBlock().setType(corpseS.getChestBlock());
-        loc2.getBlock().setType(corpseS.getChestBlock());
+        loc.getBlock().setType(corpseManager.getChestBlock());
+        loc2.getBlock().setType(corpseManager.getChestBlock());
     }
 
     @EventHandler
-    public void onChestOpen(PlayerInteractEvent event) {
+    public void onGraveOpen(PlayerInteractEvent event) {
         if (event.getClickedBlock() == null) return;
         if (event.getAction() != Action.LEFT_CLICK_BLOCK) return;
 
         Player player = event.getPlayer();
         Block block = event.getClickedBlock();
 
-        Location loc = block.getLocation();
-        BlockKey key = corpseS.key(loc);
-        BlockData data = corpseS.get(key);
+        if (block.getType() != corpseManager.getChestBlock()) return;
+        BlockKey key = corpseManager.key(block.getLocation());
+        BlockData data = corpseManager.get(key);
+
+        if (data == null) {
+            Block below = block.getRelative(0, -1, 0);
+            if (below.getType() == corpseManager.getChestBlock()) {
+                key = corpseManager.key(below.getLocation());
+                data = corpseManager.get(key);
+            }
+        }
 
         if (data == null) return;
         if (player.getGameMode() != GameMode.SURVIVAL) return;
         if (!data.getName().equals(player.getName())) return;
 
         event.setCancelled(true);
-        ChestMenu menu = new ChestMenu(plugin, corpseS, data, true);
-        guiM.openMenuandLoad(player, menu);
+        GraveMenu menu = new GraveMenu(plugin, corpseManager, data, true);
         player.playSound(player, Sound.ENTITY_SKELETON_DEATH, 1, 1);
+        guiManager.openMenuandLoad(player, menu);
 
         player.setLevel(data.getLevel());
         player.setExp(data.getProgress());
@@ -111,12 +119,12 @@ public class CorpseListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
-        BlockKey key = corpseS.key(block.getLocation());
+        BlockKey key = corpseManager.key(block.getLocation());
 
         if (player.getGameMode() == GameMode.CREATIVE) return;
-        if (block.getType() != corpseS.getChestBlock()) return;
+        if (block.getType() != corpseManager.getChestBlock()) return;
 
-        UUID uuid = corpseS.getChestLookUp().get(key);
+        UUID uuid = corpseManager.getChestLookUp().get(key);
         if (uuid == null) return;
         event.setCancelled(true);
     }
