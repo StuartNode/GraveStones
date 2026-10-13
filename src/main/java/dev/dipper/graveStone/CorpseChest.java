@@ -9,11 +9,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class CorpseChest extends JavaPlugin {
     private GuiManager guiManager;
+    private CorpseManager corpseManager;
 
     @Override
     public void onEnable() {
         guiManager = new GuiManager();
-        CorpseManager corpseManager = new CorpseManager(this);
+        corpseManager = new CorpseManager(this);
 
         getServer().getPluginManager().registerEvents(new CorpseListener(corpseManager, guiManager, this), this);
         getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
@@ -25,6 +26,10 @@ public final class CorpseChest extends JavaPlugin {
     public void onDisable() {
         if (guiManager != null) {
             guiManager.closeAll();
+        }
+
+        if (corpseManager != null) {
+            corpseManager.close();
         }
     }
 }

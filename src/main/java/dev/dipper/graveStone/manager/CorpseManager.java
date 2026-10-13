@@ -4,141 +4,143 @@ import dev.dipper.graveStone.CorpseChest;
 import dev.dipper.graveStone.block.BlockData;
 import dev.dipper.graveStone.block.BlockInventory;
 import dev.dipper.graveStone.block.BlockKey;
+import dev.dipper.graveStone.sqlite.StorageManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
-import java.util.*;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CorpseManager {
-    private final Map<UUID, BlockData> deathChest = new HashMap<>();
-    private final Map<BlockKey, UUID> chestLookUp = new HashMap<>();
+    private final Map<UUID, BlockData> deathChest = new ConcurrentHashMap<>();
+    private final Map<BlockKey, UUID> chestLookUp = new ConcurrentHashMap<>();
     private final Material chestBlock = Material.ANDESITE_WALL;
-    private File file;
-    private FileConfiguration config;
+    private final StorageManager storage;
     private final CorpseChest plugin;
+
+    private static final String LEGACY_FILE_NAME = "corpse_chest.yml";
+    private static final String LEGACY_IMPORT_MARKER = "corpse_chest.yml.imported";
 
     public CorpseManager(CorpseChest plugin) {
         this.plugin = plugin;
-        loadConfig();
-        loadDeathChest();
-    }
-
-    private List<ItemStack> safeList(String path) {
-        List<ItemStack> list = (List<ItemStack>) config.getList(path);
-        return list == null ? new ArrayList<>() : list;
-    }
-
-    public void loadDeathChest() {
-        if (!file.exists()) return;
-        deathChest.clear();
-
-        if (!config.contains("corpses")) return;
-        for (String uuidString : config.getConfigurationSection("corpses").getKeys(false)) {
-            try {
-                UUID uuid = UUID.fromString(uuidString);
-                String path = "corpses." + uuidString;;
-                String name = config.getString(path + ".name");
-
-                String world = config.getString(path + ".world");
-                int x = config.getInt(path + ".x");
-                int y = config.getInt(path + ".y");
-                int z = config.getInt(path + ".z");
-                long time = config.getLong(path + ".time");
-
-                List<ItemStack> contentsList = safeList(path + ".contents");
-                List<ItemStack> armorList = safeList(path + ".armor");
-                ItemStack offhand = config.getItemStack(path + ".offhand");
-
-                int level = config.getInt(path + ".level");
-                float progress = (float) config.getDouble(path + ".progress");
-
-                ItemStack[] contents = contentsList.toArray(new ItemStack[0]);
-                ItemStack[] armor = armorList.toArray(new ItemStack[0]);
-                BlockInventory inventory = new BlockInventory(contents, armor, offhand);
-
-                BlockKey key = new BlockKey(world, x, y, z);
-                BlockData data = new BlockData(
-                        uuid,
-                        name,
-                        key,
-                        time,
-                        inventory,
-                        level,
-                        progress
-                );
-
-                deathChest.put(uuid, data);
-                chestLookUp.put(key, uuid);
-            } catch (Exception e) {
-                plugin.getLogger().warning("Failed to load corpse: " + uuidString);
-                e.printStackTrace();
-            }
-        }
-
-        plugin.getLogger().info("Loaded " + deathChest.size() + " corpse(s).");
-    }
-
-    public void loadConfig() {
-        file = new File(plugin.getDataFolder(), "corpse_chest.yml");
-        if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdirs();
-
-        if (!file.exists()) {
-            try {
-                file.createNewFile();
-                plugin.getLogger().info("Successfully created: " + file);
-            } catch (Exception e) {
-                plugin.getLogger().severe("Failed to create: " + file);
-                e.printStackTrace();
-            }
-        }
-
-        config = YamlConfiguration.loadConfiguration(file);
-    }
-
-    public void saveConfig() {
+        StorageManager initializedStorage = null;
         try {
-            config.set("corpses", null);
-
-            for (Map.Entry<UUID, BlockData> entry : deathChest.entrySet()) {
-                String path = "corpses." + entry.getKey();
-                BlockData data = entry.getValue();
-
-                config.set(path + ".name", data.getName());
-                config.set(path + ".world", data.getKey().world());
-                config.set(path + ".x", data.getKey().x());
-                config.set(path + ".y", data.getKey().y());
-                config.set(path + ".z", data.getKey().z());
-                config.set(path + ".time", data.getCreatTime());
-                config.set(path + ".contents", data.getInventory().getContents());
-
-                config.set(path + ".level", data.getLevel());
-                config.set(path + ".progress", data.getProgress());
-            }
-
-            config.save(file);
+            initializedStorage = new StorageManager(plugin);
+            storage = initializedStorage;
+            loadDeathChests();
+            importLegacyFile();
         } catch (Exception e) {
-            plugin.getLogger().severe("Failed to save: " + file);
-            e.printStackTrace();
+            if (initializedStorage != null) {
+                initializedStorage.close();
+            }
+            throw new IllegalStateException("Failed to initialize death chest database", e);
         }
+    }
+
+    private void loadDeathChests() throws Exception {
+        for (BlockData data : storage.loadAll()) {
+            UUID uuid = data.getUuid();
+            deathChest.put(uuid, data);
+            chestLookUp.put(data.getKey(), uuid);
+        }
+        plugin.getLogger().info("Loaded " + deathChest.size() + " death chest(s) from SQLite.");
+    }
+
+    private void importLegacyFile() throws IOException {
+        File legacyFile = new File(plugin.getDataFolder(), LEGACY_FILE_NAME);
+        File marker = new File(plugin.getDataFolder(), LEGACY_IMPORT_MARKER);
+        if (!legacyFile.isFile() || marker.exists()) {
+            return;
+        }
+
+        FileConfiguration config = YamlConfiguration.loadConfiguration(legacyFile);
+        ConfigurationSection corpses = config.getConfigurationSection("corpses");
+        if (corpses != null) {
+            for (String uuidString : corpses.getKeys(false)) {
+                try {
+                    UUID uuid = UUID.fromString(uuidString);
+                    if (deathChest.containsKey(uuid)) {
+                        continue;
+                    }
+
+                    String path = "corpses." + uuidString;
+                    String world = config.getString(path + ".world");
+                    if (world == null) {
+                        throw new IllegalArgumentException("Missing world for corpse " + uuidString);
+                    }
+
+                    BlockKey key = new BlockKey(
+                            world,
+                            config.getInt(path + ".x"),
+                            config.getInt(path + ".y"),
+                            config.getInt(path + ".z")
+                    );
+                    BlockInventory inventory = new BlockInventory(
+                            readItemStacks(config.getList(path + ".contents")),
+                            readItemStacks(config.getList(path + ".armor")),
+                            config.getItemStack(path + ".offhand")
+                    );
+                    BlockData data = new BlockData(
+                            uuid,
+                            config.getString(path + ".name", "Unknown"),
+                            key,
+                            config.getLong(path + ".time"),
+                            inventory,
+                            config.getInt(path + ".level"),
+                            (float) config.getDouble(path + ".progress")
+                    );
+                    add(data, key);
+                } catch (Exception e) {
+                    throw new IllegalStateException("Failed to import legacy death chest " + uuidString, e);
+                }
+            }
+        }
+
+        Files.createFile(marker.toPath());
+        plugin.getLogger().info("Imported legacy death chest data from " + LEGACY_FILE_NAME + ".");
+    }
+
+    private ItemStack[] readItemStacks(List<?> values) {
+        if (values == null) {
+            return new ItemStack[0];
+        }
+        List<ItemStack> items = new ArrayList<>(values.size());
+        for (Object value : values) {
+            if (value instanceof ItemStack item) {
+                items.add(item);
+            } else if (value != null) {
+                plugin.getLogger().warning("Ignoring invalid item in legacy death chest data.");
+            }
+        }
+        return items.toArray(ItemStack[]::new);
     }
 
     public void add(BlockData data, BlockKey key) {
+        storage.save(data);
         UUID uuid = data.getUuid();
-        deathChest.put(uuid, data);
-        chestLookUp.put(key, uuid);
-        saveConfig();
+        BlockData previous = deathChest.put(uuid, data);
+        if (previous != null) {
+            chestLookUp.remove(previous.getKey(), uuid);
+        }
+        chestLookUp.put(data.getKey(), uuid);
     }
 
     public void remove(BlockData data, BlockKey key) {
         UUID uuid = data.getUuid();
+        storage.delete(uuid);
         deathChest.remove(uuid);
-        chestLookUp.remove(key);
-        saveConfig();
+        chestLookUp.remove(key, uuid);
     }
 
     public BlockData get(BlockKey key) {
@@ -173,5 +175,9 @@ public class CorpseManager {
 
     public Map<BlockKey, UUID> getChestLookUp() {
         return chestLookUp;
+    }
+
+    public void close() {
+        storage.close();
     }
 }

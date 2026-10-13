@@ -15,6 +15,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.1.1.build.+")
     implementation("dev.stuart:NexisApi:1.0")
+    implementation("org.xerial:sqlite-jdbc:3.47.1.0")
 }
 
 java {
