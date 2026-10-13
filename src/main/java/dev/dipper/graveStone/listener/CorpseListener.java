@@ -109,7 +109,7 @@ public class CorpseListener implements Listener {
         event.setCancelled(true);
         GraveMenu menu = new GraveMenu(plugin, corpseManager, data, true);
         player.playSound(player, Sound.ENTITY_SKELETON_DEATH, 1, 1);
-        guiManager.openMenuandLoad(player, menu);
+        guiManager.openMenuAndLoad(player, menu);
 
         player.setLevel(data.getLevel());
         player.setExp(data.getProgress());

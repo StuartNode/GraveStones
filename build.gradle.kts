@@ -29,7 +29,6 @@ tasks {
     shadowJar {
         archiveClassifier.set("")
         mergeServiceFiles()
-        minimize()
     }
 
     jar {

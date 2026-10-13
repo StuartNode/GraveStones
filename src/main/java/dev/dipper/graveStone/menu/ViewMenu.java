@@ -4,6 +4,7 @@ import dev.dipper.graveStone.block.BlockData;
 import dev.dipper.graveStone.block.BlockKey;
 import dev.dipper.graveStone.manager.CorpseManager;
 import dev.nexisApi.gui.GuiManager;
+import dev.nexisApi.input.AnvilNameInput;
 import dev.nexisApi.menu.PaginatedMenu;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
@@ -16,11 +17,13 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 public class ViewMenu extends PaginatedMenu<BlockData> {
     private final CorpseManager corpseManager;
     private final GuiManager guiManager;
+    private String searchQuery = "";
 
     public ViewMenu(JavaPlugin plugin, CorpseManager corpseManager, GuiManager guiManager) {
         super(plugin);
@@ -40,7 +43,45 @@ public class ViewMenu extends PaginatedMenu<BlockData> {
 
     @Override
     protected CompletableFuture<List<BlockData>> loadDataAsync(Player player) {
-        return CompletableFuture.supplyAsync(() -> new ArrayList<>(corpseManager.getDeathChest().values()));
+        String query = searchQuery.toLowerCase(Locale.ROOT);
+        return CompletableFuture.supplyAsync(() -> {
+            List<BlockData> corpses = new ArrayList<>(corpseManager.getDeathChest().values());
+            if (query.isEmpty()) {
+                return corpses;
+            }
+
+            return corpses.stream()
+                    .filter(data -> (data.getName() + " " + data.getKey()).toLowerCase(Locale.ROOT).contains(query))
+                    .toList();
+        });
+    }
+
+    @Override
+    protected void renderCustomControls() {
+        String filter = searchQuery.isEmpty() ? ChatColor.GRAY + "No filter" : ChatColor.AQUA + "Filter: " + ChatColor.WHITE + searchQuery;
+        inventory.setItem(slotSearch(), makeItem(Material.NAME_TAG, ChatColor.YELLOW + "Search" + ChatColor.GRAY + " (click)", filter));
+    }
+
+    @Override
+    protected boolean handleCustomControl(Player player, int slot, InventoryClickEvent event) {
+        if (slot != slotSearch()) {
+            return false;
+        }
+
+        AnvilNameInput input = new AnvilNameInput.Builder()
+                .plugin(plugin)
+                .title("Search graves")
+                .initialText(searchQuery)
+                .seedItem(makeItem(Material.NAME_TAG, "Search graves"))
+                .onSubmit((target, text) -> {
+                    searchQuery = text.trim();
+                    page = 0;
+                    reopenAfterSearch(target);
+                })
+                .onCancel(this::reopenAfterSearch)
+                .build();
+        guiManager.openAnvilInput(player, input);
+        return true;
     }
 
     @Override
@@ -62,7 +103,7 @@ public class ViewMenu extends PaginatedMenu<BlockData> {
             return;
         }
 
-         guiManager.openMenuandLoad(player, new GraveMenu(plugin, corpseManager, data, false));
+         guiManager.openMenuAndLoad(player, new GraveMenu(plugin, corpseManager, data, false));
     }
 
     private void removeStone(BlockData data) {
@@ -87,11 +128,19 @@ public class ViewMenu extends PaginatedMenu<BlockData> {
        }
     }
 
+    private void reopenAfterSearch(Player player) {
+        Bukkit.getScheduler().runTask(plugin, () -> guiManager.openMenuAndLoad(player, this));
+    }
+
     private final DateTimeFormatter TIME_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                     .withZone(ZoneId.systemDefault());
 
     private String formatTime(Long time) {
         return TIME_FORMAT.format(Instant.ofEpochMilli(time));
+    }
+
+    private int slotSearch() {
+        return firstControlSlot() + 6;
     }
 }

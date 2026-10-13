@@ -33,7 +33,7 @@ public class GraveViewCommand implements CommandExecutor {
             return true;
         }
 
-        guiM.openMenuandLoad(player, new ViewMenu(plugin, corpseM, guiM));
+        guiM.openMenuAndLoad(player, new ViewMenu(plugin, corpseM, guiM));
         return true;
     }
 }
